@@ -85,10 +85,8 @@ class MainWindow(QMainWindow):
             self.removalLine = QLine(event.pos(), event.pos())
     '''
     @Событие отпускания мыши
-        1) Если мы перетаскивали прямоугольник, то при отжатии устанавливаем текущую позицию как последнюю стабильную,
-        чтобы, если случится пересечение, вернуться в неё
-        2) Если для линий, то создаём связь
-        3) Если рисовали линию удаления, то удаляем связи, которые он пересекла
+        1) Если для линий, то создаём связь
+        2) Если рисовали линию удаления, то удаляем связи, которые он пересекла
     '''
     def mouseReleaseEvent(self,event):
         if event.button() == Qt.RightButton:
@@ -100,10 +98,6 @@ class MainWindow(QMainWindow):
             except IndexError:
                 pass
             self.update()
-
-        elif event.button() == Qt.LeftButton:
-            if self.rectToMove is not None:
-                self.rectToMove.lastPos = self.rectToMove.rectBody.center()
 
         elif event.button() == Qt.MidButton:
             indexesToRemove = self.findIndexesOfDeletedLines()
@@ -122,6 +116,7 @@ class MainWindow(QMainWindow):
     def mouseMoveEvent(self, event):
         if event.buttons() == QtCore.Qt.LeftButton:
             if self.rectToMove is not None:
+                self.rectToMove.lastPos = self.rectToMove.rectBody.center()
                 self.rectToMove.rectBody.moveCenter(event.pos())
                 if self.isRectsIntersect():
                     self.rectToMove.rectBody.moveCenter(self.rectToMove.lastPos)

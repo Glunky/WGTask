@@ -193,26 +193,13 @@ class MainWindow(QMainWindow):
 
 
     def isLinesIntersect(self,line1, line2):
-        dir1 = line1.p2() - line1.p1();
-        dir2 = line2.p2() - line2.p1();
-
-        a1 = -dir1.y();
-        b1 = abs(dir1.x());
-        d1 = -(a1 * line1.p1().x() + b1 * line1.p1().y());
-
-        a2 = -dir2.y();
-        b2 = abs(dir2.x());
-        d2 = -(a2 * line2.p1().x() + b2 * line2.p1().y());
-
-        seg1_line2_start = a2 * line1.p1().x() + b2 * line1.p1().y() + d2;
-        seg1_line2_end = a2 * line1.p2().x() + b2 * line1.p2().y() + d2;
-
-        seg2_line1_start = a1 * line2.p1().x() + b1 * line2.p1().y() + d1;
-        seg2_line1_end = a1 * line2.p2().x() + b1 * line2.p2().y() + d1;
-
-        if (seg1_line2_start * seg1_line2_end >= 0 or seg2_line1_start * seg2_line1_end >= 0): 
-            return False
-        return True
+        def ccw(A,B,C):
+            return (C.y()-A.y()) * (B.x()-A.x()) > (B.y()-A.y()) * (C.x()-A.x())
+        A = line1.p1()
+        B = line1.p2()
+        C = line2.p1()
+        D = line2.p2()
+        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
     #!-------- Функции управления прямоугольниками --------!#
     def addNewRect(self, pos):

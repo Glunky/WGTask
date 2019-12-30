@@ -35,8 +35,10 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon(r"Icons/icon.jpg"))
 
         self.rectWidth = 200
+        self.rectHeight = self.rectWidth / 2
         self.rectToMove = None
         self.removalLine = None
+        self.connectionLine = None
         self.rects = [] 
         self.lines = []
 
@@ -53,8 +55,8 @@ class MainWindow(QMainWindow):
 
         self.drawRectangles(qp)
         self.drawLines(qp)
-        if self.removalLine:
-            self.drawRemovalLine(qp)
+        self.drawRemovalLine(qp)
+        self.drawConnectionLine(qp)
 
         qp.end()
 
@@ -63,9 +65,10 @@ class MainWindow(QMainWindow):
         С помощью левой кнопки создаём новый прямугольник в точке нажатия
     '''
     def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.addNewRect(event.pos())
-            self.update()
+        if event.button() == Qt.LeftButton and self.isEnoughSpaceToCreateRect(event.pos(), self.rectWidth, self.rectHeight):
+            self.addNewRect(event.pos(), self.rectWidth, self.rectHeight)
+        self.update()
+
 
     '''
     @Событие нажатия мыши
@@ -76,7 +79,8 @@ class MainWindow(QMainWindow):
     '''
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:
-            self.addNewLine(event.pos(), event.pos())
+            #self.addNewLine(event.pos(), event.pos())
+            self.connectionLine = Line(QLine(event.pos(), event.pos()))
 
         elif event.button() == Qt.LeftButton:
             self.rectToMove = self.findDraggableRect(event.pos())
@@ -91,20 +95,23 @@ class MainWindow(QMainWindow):
     def mouseReleaseEvent(self,event):
         if event.button() == Qt.RightButton:
             try:
-                lastLine = self.lines[len(self.lines) - 1]
-                firstRect, secondRect = self.findRectsToCreateConnection(lastLine)
+                firstRect, secondRect = self.findRectsToCreateConnection(self.connectionLine)
                 if firstRect and secondRect:
-                    lastLine.createConnectionBetweenRects(firstRect, secondRect)
+                    self.connectionLine.createConnectionBetweenRects(firstRect, secondRect)
+                    self.addNewLine(self.connectionLine)
+                    print(len(self.lines))
+                self.connectionLine = None
+                    
             except IndexError:
                 pass
-            self.update()
 
         elif event.button() == Qt.MidButton:
             indexesToRemove = self.findIndexesOfDeletedLines()
             for i, idx in enumerate(indexesToRemove):
                 del self.lines[idx - i]
-            self.removalLine.setPoints(QPoint(0,0), QPoint(0,0))
-            self.update()
+            self.removalLine = None
+
+        self.update()   
 
     '''
     @Событие движения мыши
@@ -114,109 +121,125 @@ class MainWindow(QMainWindow):
         3) С помощью центральной кнопки мыши рисуем линию удаления
     '''
     def mouseMoveEvent(self, event):
-        if event.buttons() == QtCore.Qt.LeftButton:
-            if self.rectToMove is not None:
-                self.rectToMove.lastPos = self.rectToMove.rectBody.center()
-                self.rectToMove.rectBody.moveCenter(event.pos())
-                if self.isRectsIntersect():
-                    self.rectToMove.rectBody.moveCenter(self.rectToMove.lastPos)
-                    self.rectToMove = None
-                self.update()
+        if event.buttons() == QtCore.Qt.LeftButton and self.rectToMove is not None:
+            self.rectToMove.lastPos = self.rectToMove.rectBody.center()
+            self.rectToMove.rectBody.moveCenter(event.pos())
+            if self.isRectsIntersect():
+                self.rectToMove.rectBody.moveCenter(self.rectToMove.lastPos)
 
         elif event.buttons() == QtCore.Qt.RightButton:
-            lastLine = self.lines[len(self.lines) - 1]
-            lastLine.lineBody.setP2(event.pos())
-            self.update()
+            self.connectionLine.lineBody.setP2(event.pos())
 
         elif event.buttons() == QtCore.Qt.MidButton:
             self.removalLine.setP2(event.pos())
-            self.update()
+
+        self.update()
 
             
 
 
     #!-------- Функции управления линиями --------!#
 
-    def addNewLine(self, P1, P2):
-        addedLine = Line(QLine(P1, P2))
-        self.lines.append(addedLine)
+    def addNewLine(self, line):
+        self.lines.append(line)
 
 
     def drawLines(self, qp):
         for line in self.lines:
-            if line.connectionWasCreated:
-                line.lineBody.setP1(line.rect1.rectBody.center())
-                line.lineBody.setP2(line.rect2.rectBody.center())
+            rect1Center = line.rect1.rectBody.center()
+            rect2Center = line.rect2.rectBody.center()
+            line.lineBody.setP1(rect1Center)
+            line.lineBody.setP2(rect2Center)
             pen = QPen(Qt.black, 2, Qt.SolidLine)
             qp.setPen(pen)
             qp.drawLine(line.lineBody)
 
-    def drawRemovalLine(self, qp):
-        pen = QPen(Qt.red, 2, Qt.SolidLine)
-        qp.setPen(pen)
-        qp.drawLine(self.removalLine)
+    def drawRemovalLine(self, qp): #одинаковые функции!!
+        if self.removalLine:
+            pen = QPen(Qt.red, 2, Qt.SolidLine)
+            qp.setPen(pen)
+            qp.drawLine(self.removalLine)
 
+    def drawConnectionLine(self, qp): #одинаковые функции!!
+        if self.connectionLine:
+            pen = QPen(Qt.black, 2, Qt.SolidLine)
+            qp.setPen(pen)
+            qp.drawLine(self.connectionLine.lineBody)
 
     def findRectsToCreateConnection(self, line):
-        lastLineP1 = line.lineBody.p1()
-        lastLineP2 = line.lineBody.p2()
+        lineP1 = line.lineBody.p1()
+        lineP2 = line.lineBody.p2()
         firstRect = None
         secondRect = None
             
         for rect in (self.rects):
-            xLeftPosOfRect = rect.rectBody.left()
-            xRightPosOfRect = rect.rectBody.right()
-            yTopPosOfRect = rect.rectBody.top()
-            yBottomPosOfRect = rect.rectBody.bottom()
-            if (xLeftPosOfRect <= lastLineP1.x() <= xRightPosOfRect) and (yTopPosOfRect <= lastLineP1.y() <= yBottomPosOfRect):
+            leftSideOfRect = rect.rectBody.left()
+            rightSideOfRect = rect.rectBody.right()
+            topSideOfRect = rect.rectBody.top()
+            bottomSideOfRect = rect.rectBody.bottom()
+
+            if (leftSideOfRect <= lineP1.x() <= rightSideOfRect) and (topSideOfRect <= lineP1.y() <= bottomSideOfRect):
                 firstRect = rect;
-            if (xLeftPosOfRect <= lastLineP2.x() <= xRightPosOfRect) and (yTopPosOfRect <= lastLineP2.y() <= yBottomPosOfRect):
+            if (leftSideOfRect <= lineP2.x() <= rightSideOfRect) and (topSideOfRect <= lineP2.y() <= bottomSideOfRect):
                 secondRect = rect;
 
         if firstRect is not None and secondRect is not None and firstRect is not secondRect:
             return firstRect, secondRect
-        else:
-            del self.lines[len(self.lines) - 1]
-            return None, None
+
+        return None, None
+
 
     def findIndexesOfDeletedLines(self):
         indexesToRemove = []
+
         for idx, line in enumerate(self.lines):
             if self.isLinesIntersect(line.lineBody, self.removalLine):
                 indexesToRemove.append(idx)
+
         return indexesToRemove
 
 
     def isLinesIntersect(self,line1, line2):
         def ccw(A,B,C):
             return (C.y()-A.y()) * (B.x()-A.x()) > (B.y()-A.y()) * (C.x()-A.x())
+
         A = line1.p1()
         B = line1.p2()
         C = line2.p1()
         D = line2.p2()
+
         return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
     #!-------- Функции управления прямоугольниками --------!#
-    def addNewRect(self, pos):
+    def addNewRect(self, pos, rectWidth, rectHeight):
         red,green,blue = self.createRandomColor(pos)
         rectColor = QColor(red, green, blue)
-        rectWidth = self.rectWidth;
-        rectHeight = self.rectWidth / 2
-        rectCenter = QPoint(pos.x() - self.rectWidth / 2, pos.y() - rectHeight / 2)
-        addedRect = Rectangle(QRect(rectCenter, QSize(rectWidth, rectHeight)), rectColor)
+        rectCenter = QPoint((pos.x() - rectWidth / 2), (pos.y() - rectHeight / 2))
+        rectBody = QRect(rectCenter, QSize(rectWidth, rectHeight))
+        addedRect = Rectangle(rectBody, rectColor)
         self.rects.append(addedRect)
-        
-        # если при создании не хватает места для добавления прямоугольника, то удаляем его
-        if self.isRectsIntersect():
-            del self.rects[len(self.rects) - 1]
+       
+
+    def isEnoughSpaceToCreateRect(self, rectPos, rectWidth, rectHeight):
+        rectCenter = QPoint((rectPos.x() - rectWidth / 2), (rectPos.y() - rectHeight / 2))
+        rectToAdd = QRect(rectCenter, QSize(rectWidth, rectHeight))
+
+        for rect in self.rects:
+            if rect.rectBody.intersects(rectToAdd):
+                return False
+
+        return True
+
 
     def isRectsIntersect(self):
         for outerRect in (self.rects):
             for innerRect in (self.rects):
+
                 if innerRect is outerRect: 
                     continue
                 if outerRect.rectBody.intersects(innerRect.rectBody):
                     return True
+
         return False
 
 
@@ -227,10 +250,21 @@ class MainWindow(QMainWindow):
 
 
     def findDraggableRect(self, mouseClickCoords):
+        xMousePos = mouseClickCoords.x()
+        yMousePos = mouseClickCoords.y()
+
         for rect in (self.rects):
-            if (rect.rectBody.left() <= mouseClickCoords.x() <= rect.rectBody.right()) and (rect.rectBody.top() <= mouseClickCoords.y() <= rect.rectBody.bottom()):
+            leftSideOfRect = rect.rectBody.left()
+            rightSideOfRect = rect.rectBody.right()
+            topSideOfRect = rect.rectBody.top()
+            bottomSideOfRect = rect.rectBody.bottom()
+
+            if (leftSideOfRect<= xMousePos <= rightSideOfRect) and  \
+                (topSideOfRect<= yMousePos <= bottomSideOfRect):
                 return rect
+
         return None
+
 
     #случайный цвет создаётся на основе позиции прямоугольника
     def createRandomColor(self, pos):
@@ -240,6 +274,7 @@ class MainWindow(QMainWindow):
         green = rangeBegin + pos.y() % pos.x() % (rangeEnd - rangeBegin);
         blue = rangeBegin + abs(green - red) % (rangeEnd - rangeBegin);
         return red, green, blue
+
 
 app = QApplication(sys.argv)
 window = MainWindow()

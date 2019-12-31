@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>b33ee10e-54e9-43a1-b40d-0b698b909999</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>WGTask.py</StartupFile>
+    <StartupFile>App.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,7 +23,19 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="WGTask.py" />
+    <Compile Include="Controller.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Figures.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Model.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="App.py" />
+    <Compile Include="View.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.6" />

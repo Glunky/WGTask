@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QWidget
-from PyQt5.QtGui import QIcon, QPainter
+from PyQt5.QtGui import QIcon, QPainter, QPen
+from PyQt5.QtCore import Qt
 
 class View(QMainWindow):
 
@@ -21,9 +22,9 @@ class View(QMainWindow):
         qp.begin(self)
 
         self.drawRectangles(qp)
-        #self.drawLines(qp)
-        #self.drawRemovalLine(qp)
-        #self.drawConnectionLine(qp)
+        self.drawLines(qp)
+        self.drawRemovalLine(qp)
+        self.drawConnectionLine(qp)
 
         qp.end()
  
@@ -32,5 +33,26 @@ class View(QMainWindow):
             qp.setBrush(rect.rectColor)
             qp.drawRects(rect.rectBody)
 
+    def drawLines(self, qp):
+        for line in self.model.lines:
+            rect1Center = line.rect1.rectBody.center()
+            rect2Center = line.rect2.rectBody.center()
+            line.lineBody.setP1(rect1Center)
+            line.lineBody.setP2(rect2Center)
+            pen = QPen(Qt.black, 2, Qt.SolidLine)
+            qp.setPen(pen)
+            qp.drawLine(line.lineBody)
+
+    def drawRemovalLine(self, qp): #одинаковые функции!!
+        if self.model.removalLine:
+            pen = QPen(Qt.red, 2, Qt.SolidLine)
+            qp.setPen(pen)
+            qp.drawLine(self.model.removalLine)
+
+    def drawConnectionLine(self, qp): #одинаковые функции!!
+        if self.model.connectionLine:
+            pen = QPen(Qt.black, 2, Qt.SolidLine)
+            qp.setPen(pen)
+            qp.drawLine(self.model.connectionLine.lineBody)
 
 

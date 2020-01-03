@@ -1,6 +1,8 @@
 from Figures import Rectangle, Line
 from PyQt5.QtCore import Qt, QPoint, QRect, QLine, QSize
 from PyQt5.QtGui import QColor
+
+# Класс Model содержит информацию о моделе и функции манипулирования ей
 class Model:
     def __init__(self,):
         self.rectWidth = 200
@@ -11,6 +13,17 @@ class Model:
         self.rects = [] 
         self.lines = []
 
+    # функция создания цвета зависит от координат добавляемого прямоугольника
+    def createRandomColor(self, pos):
+        rangeBegin = 0
+        rangeEnd = 255
+        red = rangeBegin + pos.x() % pos.y() % (rangeEnd - rangeBegin);
+        green = rangeBegin + pos.y() % pos.x() % (rangeEnd - rangeBegin);
+        blue = rangeBegin + abs(green - red) % (rangeEnd - rangeBegin);
+        return red, green, blue
+
+
+        #!----- Функции для прямоугольников -----!#
     def isEnoughSpaceToCreateRect(self, rectPos, rectWidth, rectHeight):
         rectCenter = QPoint((rectPos.x() - rectWidth / 2), (rectPos.y() - rectHeight / 2))
         rectToAdd = QRect(rectCenter, QSize(rectWidth, rectHeight))
@@ -29,11 +42,13 @@ class Model:
         addedRect = Rectangle(rectBody, rectColor)
         self.rects.append(addedRect)
 
+
     def dragRect(self, dragPos):
         self.rectToMove.lastPos = self.rectToMove.rectBody.center()
         self.rectToMove.rectBody.moveCenter(dragPos)
-        if self.isRectsIntersect():
+        if self.areRectsIntersect():
             self.rectToMove.rectBody.moveCenter(self.rectToMove.lastPos)
+
 
     def findDraggableRect(self, mouseClickCoords):
         xMousePos = mouseClickCoords.x()
@@ -51,26 +66,30 @@ class Model:
         return None
 
 
-    def isRectsIntersect(self):
-        for outerRect in (self.rects):
-            for innerRect in (self.rects):
+    def areRectsIntersect(self):
+        for rect in (self.rects):
 
-                if innerRect is outerRect: 
-                    continue
-                if outerRect.rectBody.intersects(innerRect.rectBody):
-                    return True
+            if rect is self.rectToMove: 
+                continue
+            if self.rectToMove.rectBody.intersects(rect.rectBody):
+                return True
 
         return False
 
        
+
+    #!----- Функции для линий -----!#
     def addNewLine(self, line):
         self.lines.append(line)
+
 
     def createConnectionLine(self, xPos, yPos):
         self.connectionLine = Line(QLine(xPos, yPos))
 
+
     def createRemovalLine(self, xPos, yPos):
         self.removalLine = QLine(xPos, yPos)
+
 
     def findRectsToCreateConnection(self, line):
         lineP1 = line.lineBody.p1()
@@ -94,17 +113,18 @@ class Model:
 
         return None, None
 
+
     def findIndexesOfDeletedLines(self):
         indexesToRemove = []
 
         for idx, line in enumerate(self.lines):
-            if self.isLinesIntersect(line.lineBody, self.removalLine):
+            if self.areLinesIntersect(line.lineBody, self.removalLine):
                 indexesToRemove.append(idx)
 
         return indexesToRemove
 
 
-    def isLinesIntersect(self,line1, line2):
+    def areLinesIntersect(self,line1, line2):
         def ccw(A,B,C):
             return (C.y()-A.y()) * (B.x()-A.x()) > (B.y()-A.y()) * (C.x()-A.x())
 
@@ -116,11 +136,8 @@ class Model:
         return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
 
-    def createRandomColor(self, pos):
-        rangeBegin = 0
-        rangeEnd = 255
-        red = rangeBegin + pos.x() % pos.y() % (rangeEnd - rangeBegin);
-        green = rangeBegin + pos.y() % pos.x() % (rangeEnd - rangeBegin);
-        blue = rangeBegin + abs(green - red) % (rangeEnd - rangeBegin);
-        return red, green, blue
+    def cutLines(self, indexesToRemove):
+        for i, idx in enumerate(indexesToRemove):
+            del self.lines[idx - i]
+        self.removalLine = None
 

@@ -1,3 +1,5 @@
+# Оба класса публичные. Не думаю, что тут критично не делать геттеры и сеттеры
+
 class Line:
     def __init__(self, lineBody):
         self.lineBody = lineBody
@@ -7,7 +9,6 @@ class Line:
         self.rect2 = rect2
         self.lineBody.setP1(rect1.rectBody.center())
         self.lineBody.setP2(rect2.rectBody.center())
-
 
 class Rectangle:
     def __init__(self, rectBody, rectColor):
